@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { Board, Column, Task } from '@prisma/client'
+import { AddTaskDialog } from '@/components/add-task-dialog'
 
 interface BoardViewProps {
   board: Board & {
@@ -94,14 +95,9 @@ export function BoardView({ board: initialBoard }: BoardViewProps) {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <Button
-                variant="ghost"
-                className="w-full justify-start mb-2"
-                size="sm"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                タスクを追加
-              </Button>
+              <div className="mb-2">
+                <AddTaskDialog columnId={column.id} />
+              </div>
               <div className="space-y-2">
                 {column.tasks.map((task) => (
                   <Card

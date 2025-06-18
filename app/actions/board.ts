@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { Priority } from '@prisma/client'
 
 export async function createBoard(formData: FormData) {
   const title = formData.get('title') as string
@@ -78,4 +79,51 @@ export async function getBoardWithColumnsAndTasks(boardId: string) {
   })
 
   return board
+}
+
+export async function createTask(formData: FormData) {
+  const title = formData.get('title') as string
+  const description = formData.get('description') as string
+  const priority = formData.get('priority') as Priority
+  const dueDate = formData.get('dueDate') as string
+  const columnId = formData.get('columnId') as string
+
+  if (!title || title.trim() === '') {
+    throw new Error('タイトルは必須です')
+  }
+
+  if (!columnId) {
+    throw new Error('カラムIDが必要です')
+  }
+
+  // カラム内のタスクの最大position値を取得
+  const maxPositionTask = await prisma.task.findFirst({
+    where: { columnId },
+    orderBy: { position: 'desc' }
+  })
+
+  const newPosition = (maxPositionTask?.position ?? -1) + 1
+
+  const task = await prisma.task.create({
+    data: {
+      title: title.trim(),
+      description: description?.trim() || null,
+      priority: priority || 'MEDIUM',
+      dueDate: dueDate ? new Date(dueDate) : null,
+      columnId,
+      position: newPosition,
+    },
+  })
+
+  // ボードページを再検証
+  const column = await prisma.column.findUnique({
+    where: { id: columnId },
+    select: { boardId: true }
+  })
+
+  if (column) {
+    revalidatePath(`/boards/${column.boardId}`)
+  }
+
+  return task
 }
