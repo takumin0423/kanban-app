@@ -127,3 +127,41 @@ export async function createTask(formData: FormData) {
 
   return task
 }
+
+export async function createColumn(formData: FormData) {
+  const title = formData.get('title') as string
+  const color = formData.get('color') as string
+  const boardId = formData.get('boardId') as string
+
+  if (!title || title.trim() === '') {
+    throw new Error('カラム名は必須です')
+  }
+
+  if (!boardId) {
+    throw new Error('ボードIDが必要です')
+  }
+
+  // ボード内のカラムの最大position値を取得
+  const maxPositionColumn = await prisma.column.findFirst({
+    where: { boardId },
+    orderBy: { position: 'desc' }
+  })
+
+  const newPosition = (maxPositionColumn?.position ?? -1) + 1
+
+  const column = await prisma.column.create({
+    data: {
+      title: title.trim(),
+      color: color || '#6b7280', // gray-500 as default
+      boardId,
+      position: newPosition,
+    },
+    include: {
+      tasks: true
+    }
+  })
+
+  revalidatePath(`/boards/${boardId}`)
+
+  return column
+}
